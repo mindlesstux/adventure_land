@@ -5,7 +5,8 @@
 
 var attack_mode=true;
 var party_heal=false;
-var follow_char="PriTuz";
+var follow_char="WarTuz";
+var support_char="WarTuz";
 
 function char_main() {
     
@@ -24,33 +25,40 @@ function char_main() {
     // Check if our party broke up :(
     tuz_requestpartyup();
 
-	if(!attack_mode || character.rip || is_moving(character)) return;
+    // Play follow the leader
+    if ((support_char != null) && (support_char != character.name))
+    {
+        tuz_followleader()
+    } else {
+        if(!attack_mode || character.rip || is_moving(character)) return;
 
-	var target=get_targeted_monster();
-	if(!target)
-	{
-		target=get_nearest_monster({min_xp:100,max_att:200});
-		if(target) change_target(target);
-		else
-		{
-			set_message("No Monsters");
-			return;
-		}
-	}
-	
-	if(!is_in_range(target))
-	{
-		move(
-			character.x+(target.x-character.x)/2,
-			character.y+(target.y-character.y)/2
-			);
-		// Walk half the distance
-	}
-	else if(can_attack(target))
-	{
-		game_log("Attacking");
-		attack(target);
-	}
+        
+        var target=get_targeted_monster();
+        if(!target)
+        {
+            target=get_nearest_monster({min_xp:100,max_att:300});
+            if(target) change_target(target);
+            else
+            {
+                set_message("No Monsters");
+                return;
+            }
+        }
+        
+        if(!is_in_range(target))
+        {
+            move(
+                character.x+(target.x-character.x)/2,
+                character.y+(target.y-character.y)/2
+                );
+            // Walk half the distance
+        }
+        else if(can_attack(target))
+        {
+            game_log("Attacking");
+            attack(target);
+        }
+    }
 }
 
 function recover()
@@ -135,6 +143,34 @@ function tuz_follow(){
 function handle_death()
 {
     setTimeout(respawn,20000);
+}
+
+function tuz_followleader()
+{
+    // Party leader
+	var leader = get_player(support_char);
+	
+	// Current target and target of leader.
+	var currentTarget = get_targeted_monster();
+	var leaderTarget = get_target_of(leader)
+	
+	// Change the target.
+	if (!currentTarget || currentTarget != leaderTarget) { 
+		// Current target is empty or other than the leader's.
+		change_target(leaderTarget);
+		currentTarget = get_targeted_monster();
+	}
+	
+	// Attack the target.
+	if(currentTarget && can_attack(currentTarget) && (character.ctype != "priest")){
+		// Current target isn't empty and attackable.
+		attack(currentTarget);
+	}
+	
+	//Move to leader.
+	if(!character.moving)
+		// Move only if you are not already moving.
+		move(leader.real_x, leader.real_y);
 }
 
 // Kick the off the loop
